@@ -138,3 +138,8 @@ library(p8105.datasets)
 data("ny_noaa")
 ```
 
+```{r}
+# Create separate variables for year, month, and day
+
+```
+
