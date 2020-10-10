@@ -1,0 +1,140 @@
+---
+title: "p8105_hw3_cl4043"
+author: "Stella Li"
+date: "10/10/2020"
+output: html_document
+---
+
+This is Stella's solution to HW 3.
+
+### Problem 1
+
+```{r message=FALSE}
+library(tidyverse)
+library(readr)
+library(janitor)
+library(dplyr)
+library(p8105.datasets)
+data("instacart")
+```
+
+This dataset contains `r nrow(instacart)` rows and ... columns. 
+
+Observations are the level of items in orders by user. There are user / order variables -- user ID, order ID, order day, and order hour. There are also item variables -- name, aisle, department, and some numeric codes. 
+
+How many aisles, and which are most items from?
+
+```{r}
+instacart %>% 
+	count(aisle) %>% 
+	arrange(desc(n))
+```
+
+Let's make a plot
+
+```{r}
+instacart %>% 
+	count(aisle) %>% 
+	filter(n > 10000) %>% 
+	mutate(
+		aisle = factor(aisle),
+		aisle = fct_reorder(aisle, n)
+	) %>% 
+	ggplot(aes(x = aisle, y = n)) + 
+	geom_point() + 
+	theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+Let's make a table!!
+
+```{r}
+instacart %>% 
+	filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+	group_by(aisle) %>% 
+	count(product_name) %>% 
+	mutate(rank = min_rank(desc(n))) %>% 
+	filter(rank < 4) %>% 
+	arrange(aisle, rank) %>% 
+	knitr::kable()
+```
+
+Apples vs ice cream..
+
+```{r}
+instacart %>% 
+	filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+	group_by(product_name, order_dow) %>% 
+	summarize(mean_hour = mean(order_hour_of_day)) %>% 
+	pivot_wider(
+		names_from = order_dow,
+		values_from = mean_hour
+	)
+```
+
+### Problem 2
+
+```{r message=FALSE}
+accel_data = 
+  read_csv("./data/accel_data.csv") 
+
+# clean names of the data into useful variable names
+accel_data <- accel_data %>%
+  clean_names() 
+
+    
+# encode data with reasonable variable classes
+accel_data <- accel_data %>%
+  mutate(week = as.factor(week),
+         day_id = as.integer(day_id),
+         day = as.character(day)
+         ) 
+  
+# include a weekday vs weekend variable
+accel_data <- accel_data %>%
+mutate(weekday=case_when(
+day %in% c("Monday","Tuesday","Wednesday","Thursday","Friday") ~ "weekday",
+day %in% c("Saturday","Sunday") ~ "weekend"
+)
+)
+
+activity_df <- accel_data %>%
+  select(activity_1:activity_1440)
+
+accel_data <- accel_data %>%
+  select(weekday, everything()) %>%
+  mutate(activity_count = rowSums(activity_df)) 
+  
+# create a table of the total minutes of activity  
+knitr::kable(accel_data[, 1445], "pipe")
+
+# converting to a long table
+tidy_accel <- accel_data %>%
+  pivot_longer(
+    activity_1:activity_1440,
+    names_to = "minute",
+    values_to = "activitycounts") 
+
+week_mean <- tidy_accel %>%
+  group_by(week) %>%
+  summarise(week_mean = mean(activity_count)) 
+
+day_mean <- tidy_accel %>%
+  group_by(day) %>%
+  summarise(day_mean = mean(activity_count)) 
+
+# making the plot
+
+tidy_accel %>%
+  ggplot(aes(x = minute, y = activitycounts, color = day),alpha = 0.5) + geom_line() + theme(axis.ticks.x = element_blank())
+
+```
+
+The new data frame after cleaning has 7 variables, including "weekday", "week", "day_id", "day", "activity_count", "minute", and "activitycounts". In total, there are 50400 (35*1440) observations, which makes sense, since there are 35 days, and each day consists of 1440 activities. The trend I have observed is that this patient on average exercises more on the second and third week and usually on Monday he is most active.
+
+### Problem 3
+
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+```
+
