@@ -15,6 +15,7 @@ library(readr)
 library(janitor)
 library(dplyr)
 library(p8105.datasets)
+library(patchwork)
 data("instacart")
 ```
 
@@ -125,11 +126,11 @@ day_mean <- tidy_accel %>%
 # making the plot
 
 tidy_accel %>%
-  ggplot(aes(x = minute, y = activitycounts, color = day),alpha = 0.5) + geom_line() + theme(axis.ticks.x = element_blank())
+  ggplot(aes(x = minute, y = activitycounts, color = day),alpha = 0.5) + geom_line() + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank())
 
 ```
 
-The new data frame after cleaning has 7 variables, including "weekday", "week", "day_id", "day", "activity_count", "minute", and "activitycounts". In total, there are 50400 (35*1440) observations, which makes sense, since there are 35 days, and each day consists of 1440 activities. The trend I have observed is that this patient on average exercises more on the second and third week and usually on Monday he is most active.
+The new data frame after cleaning has 7 variables, including "weekday", "week", "day_id", "day", "activity_count", "minute", and "activitycounts". In total, there are 50400 (35*1440) observations, which makes sense, since there are 35 days, and each day consists of 1440 activities. The trend I have observed is that this patient on average exercises more on the second and third week during his hospitalization period and usually on Friday he is the most active. According to the plot above, the trend I have observed is that
 
 ### Problem 3
 
@@ -140,6 +141,58 @@ data("ny_noaa")
 
 ```{r}
 # Create separate variables for year, month, and day
+ny_noaa <- ny_noaa %>%
+  separate("date", c("year", "month", "day"), sep = "-")
 
+ny_noaa[!is.na(ny_noaa$snow),]
+```
+As we can see after dropping the na. values in the snow variable, the most commonly observed values is 0, which makes sense, since snow does not account to most days in a year.
+
+```{r, message=FALSE}
+# make a two-panel plot showing the average max temperature in January and in July in each station across years
+JanJul <- ny_noaa %>%
+  filter(month %in% c("01", "07")) %>%
+  drop_na() %>%
+  group_by(year, month, tmax) %>%
+  summarize(mean_tmax = mean(tmax), na.rm = TRUE) 
+  
+JanJul_plot =
+  JanJul %>%
+  ggplot(aes(x = year, y = mean_tmax)) + geom_point(alpha = 0.5) + facet_grid(.~month) + 
+  labs(title = "average max temperature in January and July",
+       subtitle = "NYC weather data from 1981 to 2010",
+       caption = "ny_noaa dataset") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+
+JanJul_plot
+```
+Since most of the entries are NA, the average of mean temperature is not observable.
+
+```{r}
+# make a two-panel plot showing (i) tmax vs tmin for the full dataset 
+noaa_df <- ny_noaa %>%
+  drop_na() %>%
+  group_by(year, month) 
+  
+max_plot =
+  noaa_df %>%
+  ggplot(aes(x = year, y = tmax)) + geom_point(alpha = 0.5) + 
+  labs(title = "tmax for the full dataset") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank())
+
+min_plot =
+  noaa_df %>%
+  ggplot(aes(x = year, y = tmin)) + geom_point(alpha = 0.5) + 
+  labs(title = "tmin for the full dataset") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + theme(axis.text.y=element_blank(), axis.ticks.y=element_blank())
+
+max_plot + min_plot
+```
+
+```{r}
+# make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year
+ny_noaa %>%
+  drop_na() %>%
+  group_by(year) %>%
+  filter(100>snow>0) %>%
+  ggplot(aes(x = snow, fill = year)) + 
+  geom_density(alpha = .4, adjust = .5, color = "blue")
 ```
 
